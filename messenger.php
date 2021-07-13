@@ -87,6 +87,8 @@ class Messenger extends sdsDataObject
 				$this->dataSubmit($mData,$bSuccessfull);
                 break;
             case 'API':
+                $this->dataSubmit($mData,$bSuccessfull);
+                break;
 			default:
 				break;
 		}

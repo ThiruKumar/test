@@ -5,14 +5,17 @@ require_once( SDSP_PATH_lib . 'sds_data_objects/sdsdataobject.php');
 class Messenger_Pts extends Messenger implements messengerSubmit
 {
     protected $_sDatetimeError = '';
-    protected $_sWSDL = 'https://ar.masscec-pts.com/pts_ar.asmx?WSDL';
+    protected $_sAPI = 'http://92.204.133.27/pts_data/api.php';
     protected $oPtsConn;
     private $_err;
+    protected $_sUsername = 'sds_user';
+    protected $_sPassword = 'UeXV5z8WHhecA9JR';
+    protected $_sclientId = 'sds_messenger';
 
 	public function __construct($sName = null)
 	{
 		parent::__construct($sName);
-		$this->oPtsConn = $this->_createSoapClient(); //set connection once and use it multiple times
+		//$this->oPtsConn = $this->_createSoapClient(); //set connection once and use it multiple times
 	}
     /**
 	*
@@ -135,7 +138,7 @@ class Messenger_Pts extends Messenger implements messengerSubmit
 		$firstDay = $oDate->format('Y-m-d H:i:s');
 
 		$oDate->setTime(23,59,59);
-		$oDate->modify('+4 days');
+		$oDate->modify('+15 days');
 		$lastDay = $oDate->format('Y-m-d H:i:s');
 
 		$bTimeStatus = false;
@@ -468,174 +471,102 @@ class Messenger_Pts extends Messenger implements messengerSubmit
 	}
 
 	/**
-	*Submit data to server
-	*@param assoc array $mData
-	*@param Boolean $bSuccessfull
-	*/
-	public function dataSubmit($mData,&$bSuccessfull)
+  *Submit data to server
+  *@param assoc array $mData
+  *@param Boolean $bSuccessfull
+  */
+  public function dataSubmit($mData,&$bSuccessfull)
     {
-        set_error_handler(array($this, "errorHandler"));
-	//$reportMsg = $this->_postData($this->getMessengerMember()->systemid,$mData['monthTotal'],date('Y-m-d\TH:i:s'));//uncomment for commit
+
+
+    set_error_handler(array($this, "errorHandler"));
+    $reportMsg = $this->_postData($this->getMessengerMember()->systemid,$mData['monthTotal'],date('Y-m-d\TH:i:s'));//uncomment for commit
         //$XMLResponseValues = simplexml_load_string($reportMsg['postdataResult']);//uncoment for commit
 
-		//IMPORTANT, NOT FOR PRODUCTION, TESTING REPORTING ONLY
-		$reportMsg = $this->_testPostData($this->getMessengerMember()->systemid,$mData['monthTotal'],date('Y-m-d\TH:i:s'));
-		$XMLResponseValues = simplexml_load_string($reportMsg['testpostdataResult']);
-		//IMPORTANT, NOT FOR PRODUCTION, TESTING REPORTING ONLY
+    //IMPORTANT, NOT FOR PRODUCTION, TESTING REPORTING ONLY
+    //$reportMsg = $this->_testPostData($this->getMessengerMember()->systemid,$mData['monthTotal'],date('Y-m-d\TH:i:s'));
+    //$XMLResponseValues = simplexml_load_string($reportMsg['testpostdataResult']);
+    //IMPORTANT, NOT FOR PRODUCTION, TESTING REPORTING ONLY
 
-		$sSuccess = (string) $XMLResponseValues->Results->ARSystemResults->Success;
-		$sMonthlyValSent = $mData['monthTotal'];
-		$sRecordsInserted = (string) $XMLResponseValues->Results->ARSystemResults->RecordsInserted;
-		$sSystemID = (string) $XMLResponseValues->Results->ARSystemResults->attributes()->SystemID;
-        $sSOAPMessage = (string) $XMLResponseValues->Results->ARSystemResults->Messages;
+    //$sSuccess = (string) $XMLResponseValues->Results->ARSystemResults->Success;
+    $sMonthlyValSent = $mData['monthTotal'];
+    //$sSystemID = (string) $XMLResponseValues->Results->ARSystemResults->attributes()->SystemID;
         if($this->_err == null)
-		{
-		    if($sSuccess === 'true')
-		    {
-		    	//Log success to file ggc
-		    	$sMessage = "SN: ".$this->getMessengerMember()->serialnumber.
-		    				", Success: ".$sSuccess.
-		    				", Records Inserted: ".$sRecordsInserted.
-		    				", SystemID: ".$sSystemID.
-		    				", SOAPMsg: ".$sSOAPMessage.
-		    				", Monthly value sent: ".$sMonthlyValSent;
-		    	$this->gblog($sMessage, SDS_INFO);
-		    	$bSuccessfull = true;
-		    }
-		    elseif($sSuccess === 'false')
-		    {
-		    	//Log error to file ggc
-		    	$sMessage = "SN: ".$this->getMessengerMember()->serialnumber.
-		    				", Success: ".$sSuccess.
-		    				", Records Inserted: ".$sRecordsInserted.
-		    				", SystemID: ".$sSystemID.
-		    				", SOAPMsg: ".$sSOAPMessage.
-		    				", Monthly value sent: ".$sMonthlyValSent;
-		    	$this->gblog($sMessage, SDS_ERROR);
-		    	$bSuccessfull = false;
+    {
+        if($reportMsg === 'true')
+        {
+          //Log success to file ggc
+          $sMessage = "SN: ".$this->getMessengerMember()->serialnumber.
+                ", Success: ".$reportMsg.
+                ", SystemID: ".$this->getMessengerMember()->systemid.
+                ", Monthly value sent: ".$sMonthlyValSent;
+          $this->gblog($sMessage, SDS_INFO);
+          $bSuccessfull = true;
+        }
+        elseif($reportMsg === 'false')
+        {
+          //Log error to file ggc
+          $sMessage = "SN: ".$this->getMessengerMember()->serialnumber.
+                ", Success: ".$reportMsg.
+                ", SystemID: ".$this->getMessengerMember()->systemid.
+                ", Monthly value sent: ".$sMonthlyValSent;
+          $this->gblog($sMessage, SDS_ERROR);
+          $bSuccessfull = false;
             }
         }
         else
         {
-            //Log xml response when failed (Nodes I need are not returned hence the problem) to file
-			ob_start();
-				var_dump($XMLResponseValues->asXML());
-			$result = ob_get_clean();
-			//Logging the xml response only when it is different than what we expect, this is logged in a different file
-            sdslog('gg_pts_soap_error_xmlresponse',$result,SDS_INFO);
+            
             $sMessage = $this->_err;
             $this->gblog($sMessage, SDS_ERROR);
-			$bSuccessfull = false;
+      $bSuccessfull = false;
         }
-	}//end function dataSubmit
+  }//end function dataSubmit
 
-	/**
-	*Logging for PTS:
-	*@param string $sMessage
-	*@param $iLogLevel
-	*/
-	protected function gblog($sMessage, $iLogLevel=SDS_INFO)
-	{
-		sdslog('messenger_pts', $sMessage, $iLogLevel);
-	}
+  /**
+  *Logging for PTS:
+  *@param string $sMessage
+  *@param $iLogLevel
+  */
+  protected function gblog($sMessage, $iLogLevel=SDS_INFO)
+  {
+    sdslog('messenger_pts', $sMessage, $iLogLevel);
+  }
 
-    private function _getLastMeterValue($sPTSSysId,$sYear,$sMonth,$sDay)
-    {
-        $msg='<GetMeterValue xmlns="https://ar.masscec-pts.com/">'.
-			    "<PTSSystemID>$sPTSSysId</PTSSystemID>".
-			    "<MeterYear>$sYear</MeterYear>".
-			    "<MeterMonth>$sMonth</MeterMonth>".
-			    "<MeterDay>$sDay</MeterDay>".
-                '</GetMeterValue>';
-        if(!$this->oPtsConn)
-        {
-            $this->oPtsConn = $this->_createSoapClient();
-        }
-        return $this->oPtsConn->call('GetMeterValue',$msg);
-	}
 
-	private function _getLastMeterDate($sPTSSysId)
-	{
-		$msg='<GetLastMeterDate xmlns="https://ar.masscec-pts.com/">'.
-				"<PTSSystemID>$sPTSSysId</PTSSystemID>".
-                '</GetLastMeterDate>';
-        //Make sure there is an connection. Sometimes an error for open connection is created
-        if(!$this->oPtsConn)
-        {
-            $this->oPtsConn = $this->_createSoapClient();
-        }
-		return $this->oPtsConn->call('GetLastMeterDate',$msg);
-	}
+  /**
+  *Posting Data to Iplon Cloud:
+  *@param string $sPTSSysId
+  *@param $kwhRegistry
+  *@param $regDateTime
+  * @return string $response
+  */
+  private function _postData($sPTSSysId,$kwhRegistry,$regDateTime)
+  {
+     $postData = '';
+     
+     $data = array('fc'=>'ptsData',
+                   'systemId'=>$sPTSSysId,
+                   'metervalue'=>$kwhRegistry,
+                   'meterDate'=>$regDateTime,
+               	   'username'=>$this->_sUsername,
+               	   'password'=>$this->_sPassword,
+               	   'client_id'=>$this->_sclientId);
+     $postData = http_build_query($data, '', '&');
 
-	private function _testPostData($sPTSSysId,$kwhRegistry,$regDateTime)
-	{
-		$xml = '<ARData xmlns="https://ar.masscec-pts.com/PTS-AR"> '.
-				'<ptsSystem sysType="PV"> '.
-					"<sysID>$sPTSSysId</sysID> ".
-					'<MonthlyData> '.
-						'<PVmonthlyData> '.
-							"<kwhRegistry>$kwhRegistry</kwhRegistry> ".
-							"<regDateTime>$regDateTime</regDateTime> ".
-						'</PVmonthlyData> '.
-					'</MonthlyData> '.
-				'</ptsSystem> '.
-				'</ARData> ';
+     $ch = curl_init( $this->_sAPI );
+     curl_setopt( $ch, CURLOPT_POST, 1);
+     curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, 1);
+     curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1);
+     curl_setopt($ch, CURLOPT_POST, count($postData));
+     curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+     $output = curl_exec($ch);  
+     $this->gblog("Testing in _postData function".$output, SDS_ERROR);
+     curl_close($ch);
+     
+     return $response = curl_exec( $ch );
+  }//end function _postData($sPTSSysId,$kwhRegistry,$regDateTime)
 
-		$msg =	'<testpostdata xmlns="https://ar.masscec-pts.com/">'.
-					'<xmldata>'.
-						htmlspecialchars($xml, ENT_QUOTES, "UTF-8").
-					'</xmldata>'.
-					'</testpostdata>';
-		//Make sure there is an connection. Sometimes an error for open connection is created
-        if(!$this->oPtsConn)
-        {
-            $this->oPtsConn = $this->_createSoapClient();
-        }
-		return $this->oPtsConn->call('testpostdata',$msg);
-	}//end function testPostData($sPTSSysId,$kwhRegistry,$regDateTime)
 
-	private function _postData($sPTSSysId,$kwhRegistry,$regDateTime)
-	{
-		$xml =	'<ARData xmlns="https://ar.masscec-pts.com/PTS-AR"> '.
-				'<ptsSystem sysType="PV"> '.
-					"<sysID>$sPTSSysId</sysID> ".
-					'<MonthlyData> '.
-						'<PVmonthlyData> '.
-							"<kwhRegistry>$kwhRegistry</kwhRegistry> ".
-							"<regDateTime>$regDateTime</regDateTime> ".
-						'</PVmonthlyData> '.
-					'</MonthlyData> '.
-				'</ptsSystem> '.
-				'</ARData> ';
-
-		$msg =	'<postdata xmlns="https://ar.masscec-pts.com/">'.
-					'<xmldata>'.
-						htmlspecialchars($xml, ENT_QUOTES, "UTF-8").
-					'</xmldata>'.
-					'</postdata>';
-		//Make sure there is an connection. Sometimes an error for open connection is created
-        if(!$this->oPtsConn)
-        {
-            $this->oPtsConn = $this->_createSoapClient();
-        }
-		return $this->oPtsConn->call('postdata',$msg);
-	}//end function _postData($sPTSSysId,$kwhRegistry,$regDateTime)
-
-	/**
-     * Create PTS client, set Headers
-     * @version 1.0.0
-     * @return soap-client of class "nusoap_client"
-     */
-    private function _createSoapClient()
-    {
-        $host = $this->host."/";
-		$soap_client = new nusoap_client($this->_sWSDL, true /** wsdl **/);
-		$headers = "<cAuthentication xmlns=\"$host\" >".
-                                "<UserName>$this->username</UserName>".
-                                "<Password>".$GLOBALS['SDSP_misc']->T3Des_decrypt($this->password)."</Password>".
-                               " </cAuthentication>";
-		$soap_client->setHeaders($headers);
-		return $soap_client;
-	}
 }//end class Messenger_Pts
 ?>
