@@ -1,0 +1,20 @@
+http in node url property
+=====================
+/grafana/:name
+
+template node
+============
+{{payload.from}}
+
+http://127.0.0.1:1880/grafana/thiru?from=1634531004183&to=1634552604183&height=4&now=1634552604184&interval=%24__interval&sample=Not%20escaped%3A%20%24__interval&since=1634552096119
+
+
+
+Nodered Useful links
+==============
+
+https://discourse.nodered.org/t/what-is-the-usefulness-of-node-red/11808
+https://cookbook.nodered.org/http/handle-url-parameters
+https://stevesnoderedguide.com/http-in-http-response-nodes
+https://cookbook.nodered.org/http/serve-json-content
+https://mustache.github.io/mustache.5.html
